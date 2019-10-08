@@ -1,0 +1,109 @@
+#install.packages(tseries)
+library(tseries)
+
+setwd('C:\\Users\\Marinho\\Desktop\\Aula_TS-R')
+
+
+#Tarefa 1
+# -------------
+data(AirPassengers)
+AP<-AirPassengers
+AP
+
+plot(AP, ylab="Passagers (100's)")
+
+# Tarefa 2
+# --------------
+CBE <- read.table('CBE.txt', header = T)
+edit(CBE)
+
+Elec.ts <- ts(CBE[,3], start = 1958, freq = 12)
+Beer.ts <- ts(CBE[,2], start = 1958, freq = 12)
+Choc.ts <- ts(CBE[,1], start = 1958, freq = 12)
+
+plot(cbind(Elec.ts, Beer.ts,Choc.ts))
+
+
+# Tarefa 3
+-----------------
+start(AP)
+end(AP)
+AP.ts <- ts(AP, start = 1949, freq = 12)
+
+#Decomposition of additive time series
+# X = Trend+Sasonal+ random
+
+decompose(AP.ts)
+plot(decompose(AP.ts))
+
+
+#Decomposition of multiplicative time series
+# X = Trend*Sasonal*random
+# decompose(AP.ts, type="mult")
+# plot(decompose(AP.ts, type="mult"))
+
+# Tarefa 4
+# -------------
+
+AP.decom <- decompose(AP.ts)
+AP.Trend <- AP.decom$trend 
+AP.Seasonal <- AP.decom$seasonal
+AP.Random <- AP.decom$random
+
+
+layout(1:2)
+acf(ts(AP.ts))
+pacf(ts(AP.ts))
+
+
+ZAP=AP.Random[13:120]
+layout(1:2)
+acf(ZAP, lag.max = 30)
+pacf(ZAP, lag.max = 30)
+
+# Tarefa 5
+# ------------------
+
+layout(1:2)
+acf(ts(Elec.ts))
+pacf(ts(Elec.ts))
+
+Elec.decom <- decompose(Elec.ts, type="mult")
+Elec.Trend <- Elec.decom$trend 
+Elec.Seasonal <- Elec.decom$seasonal
+Elec.Random <- Elec.decom$random
+
+
+ZElec <- ts(Elec.Random[7:390])
+
+layout(1:2)
+acf(ZElec, lag.max = 30)
+pacf(ZElec, lag.max = 30)
+
+
+# Tarefa 6
+
+# ARIMA(p,d,q) 
+
+# p = 2
+# d = 1
+# q = 1 
+# arima(ZAP, order = c(p, d, q))
+
+fit1 <- arima(ZAP, order = c(1, 0, 1))
+fit2 <- arima(ZAP, order = c(1, 0, 0))
+fit3 <- arima(ZAP, order = c(2, 0, 0))
+
+BIC(fit1, fit2, fit3)
+
+#fit3
+
+
+fit1 <- arima(ZElec, order = c(1, 0, 1))
+fit2 <- arima(ZElec, order = c(1, 0, 0))
+fit3 <- arima(ZElec, order = c(2, 0, 0))
+
+BIC(fit1, fit2, fit3)
+
+#fit3
+
