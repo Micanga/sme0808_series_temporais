@@ -1,0 +1,151 @@
+#Pacotes que serão necessário instalar:
+
+install.packages(tseries)
+library(tseries)
+
+install.packages("FitAR")
+library(FitAR)
+
+install.packages("forecast")
+library(forecast)
+
+
+# Tarefa 7.1 - Escolher melhor modelo
+# -----------------------------------
+CBE <- read.table('CBE.txt', header = T)
+edit(CBE)
+
+Elec.ts <- ts(CBE[,3], start = 1958, freq = 12)
+Beer.ts <- ts(CBE[,2], start = 1958, freq = 12)
+Choc.ts <- ts(CBE[,1], start = 1958, freq = 12)
+
+plot(cbind(Elec.ts, Beer.ts,Choc.ts))
+
+Elec.decom <- decompose(Elec.ts, type="mult")
+Elec.Trend <- Elec.decom$trend 
+Elec.Seasonal <- Elec.decom$seasonal
+Elec.Random <- Elec.decom$random
+
+
+ZElec <- ts(Elec.Random[7:390])
+
+
+layout(1:3)
+plot(ts(Elec.ts))
+plot(diff(ts(Elec.ts)))
+plot(ZElec)
+
+
+layout(1:2)
+acf(ZElec, lag.max = 30)
+pacf(ZElec, lag.max = 30)
+
+
+fit1 <- arima(ZElec, order = c(1, 0, 1))
+fit2 <- arima(ZElec, order = c(1, 0, 0))
+fit3 <- arima(ZElec, order = c(2, 0, 0))
+
+BIC(fit1, fit2, fit3)
+
+arima(ZElec, order = c(1, 0, 0))
+
+# Rrsidual analysis
+layout(1:2)
+acf(fit2$residuals, lag.max = 30)
+pacf(fit2$residuals, lag.max = 30)
+
+
+# For time-series prediction, 
+# predict.ar, predict.Arima, predict.arima0, # # predict.HoltWinters, 
+# predict.StructTS. 
+
+prev<-predict(fit2,6)
+
+#par(mfrow=c(1,2))
+ts.plot(window(ZElec, start=370),main='Previsão ZElec - Modelo AR(1)',
+prev$pred,
+prev$pred+1.96*prev$se,
+prev$pred-1.96*prev$se,
+col=c(1,2,2,2), lty=c(1,1,2,2))
+
+
+# Pacote de previsão alternativo
+
+library(forecast)
+fZElec=forecast(fit2, h=6)
+
+fZElec
+ts.plot(fZElec)
+
+###########################################################################
+
+# Mais práticas:
+# http://conteudo.icmc.usp.br/pessoas/ehlers/stemp/praticas/praticas.html
+
+
+#data(lh)
+x=Elec.ts
+
+int = seq(0.1,0.99,0.001)
+
+e=NULL
+
+for (alfa in int){
+  e2=0
+  prev.ant = x[1]
+  for (i in 2:length(x)){
+    prev = alfa*x[i-1] + (1-alfa)*prev.ant
+    prev.ant = prev
+    e2 = e2 + (x[i]-prev)**2
+  }
+  e=c(e,e2)
+}
+plot(int,e,type='l',xlab=expression(alpha),
+ylab='Soma de quadrados dos erros')
+
+int[e==min(e)]
+# [1] 0.968
+
+# Vamos agora escrever uma função do R usando os comandos acima e assim podemos testar # com outras series. Desta vez vamos guardar as previsões 1 passo a frente.
+
+AES = function(x,interval){
+ e=NULL
+ for (alpha in interval){
+   e2=0
+   prev = x[1]
+   for (i in 2:length(x)){
+     prev = c(prev,alpha*x[i-1] + (1-alpha)*prev[i-1])
+     e2 = e2 + (x[i]-prev[i])**2
+   }
+   e=c(e,e2)
+ }
+ plot(interval,e,type='l',xlab=expression(alpha),
+ ylab='Soma de quadrados dos erros')
+ e.min=min(e)
+ alpha=interval[e==e.min]
+ prev = x[1]
+ for (i in 2:length(x)) prev = c(prev,alpha*x[i-1] + (1-alpha)*prev[i-1])
+ return(list(alpha=alpha,sq2=e.min,prev=prev))
+}
+
+ int = 0.01  #seq(0.1,0.99,0.001)
+ m = AES(x,int)
+ plot(m$prev,ylab='Previsão',xlab='Anos',type='l') 
+ plot(m$prev,type='l')
+
+
+# A função HoltWinters do R faz o alisamento exponencial de Holt-Winters. As # # constantes de alisamento ($ \alpha$, $ \beta$ e $ \gamma$) são determinadas # # minimizando a soma dos quadrados dos erro de previsão 1 passo a frente. Considere # # novamente a serie AirPassengers e aplique a função HoltWinters com um modelo sazonal # multiplicativo.
+
+data(AirPassengers)
+m = HoltWinters(AirPassengers, seasonal = "mult")
+
+names(m)
+
+[1] "fitted"       "x"            "alpha"        "beta"         "gamma"       
+[6] "coefficients" "seasonal"     "SSE"          "call"
+Veja as constantes de alisamento calculadas
+
+c(m$alpha,m$beta,m$gamma)
+
+     alpha       beta      gamma 
+0.27485497 0.01745283 0.87662614
