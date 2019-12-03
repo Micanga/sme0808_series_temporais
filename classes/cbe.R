@@ -26,6 +26,8 @@ Elec.decom <- decompose(Elec.ts, type="mult")
 Elec.Trend <- Elec.decom$trend 
 Elec.Seasonal <- Elec.decom$seasonal
 Elec.Random <- Elec.decom$random
+plot(Elec.decom)
+locator(1)
 
 ZElec <- ts(Elec.Random[7:390])
 
@@ -44,3 +46,8 @@ BIC(fit1, fit2, fit3)
 
 evaluation = BIC(fit1, fit2, fit3)
 print(evaluation)
+
+# 6. Evaluating the model
+layout(1:2)
+acf(fit1$residuals, lag.max = 30)
+pacf(fit1$residuals, lag.max = 30)
